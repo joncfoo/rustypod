@@ -1,10 +1,8 @@
-use std::path::{Path, PathBuf};
-
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 use chrono::NaiveDateTime;
 use log::debug;
 use sqlx::migrate::Migrator;
-use sqlx::{Pool, Sqlite, SqlitePool};
+use sqlx::{query, query_as, Pool, Sqlite, SqlitePool};
 
 static MIGRATOR: Migrator = sqlx::migrate!();
 
@@ -44,7 +42,7 @@ impl Database {
 
     pub async fn create_podcast(&self, p: &Podcast) -> Result<Podcast> {
         let mut tx = self.pool.begin().await?;
-        let podcast = sqlx::query_as!(
+        let podcast = query_as!(
             Podcast,
             r#"
             insert into podcasts
@@ -70,7 +68,7 @@ impl Database {
 
     pub async fn update_podcast(&self, p: &Podcast) -> Result<Podcast> {
         let mut tx = self.pool.begin().await?;
-        let podcast = sqlx::query_as!(
+        let podcast = query_as!(
             Podcast,
             r#"
             update podcasts
@@ -103,7 +101,7 @@ impl Database {
     }
 
     pub async fn delete_podcast(&self, p: &Podcast) -> Result<()> {
-        let _ = sqlx::query(r#"delete from podcasts where id = ?"#)
+        let _ = query(r#"delete from podcasts where id = ?"#)
             .bind(p.id)
             .execute(&self.pool)
             .await?;
@@ -112,7 +110,7 @@ impl Database {
     }
 
     pub async fn get_podcast(&self, id: &i64) -> Result<Option<Podcast>> {
-        let p = sqlx::query_as!(Podcast, r#"select * from podcasts where id = ?"#, id,)
+        let p = query_as!(Podcast, r#"select * from podcasts where id = ?"#, id,)
             .fetch_optional(&self.pool)
             .await?;
 
