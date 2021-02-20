@@ -17,8 +17,9 @@ log = "0.4"
 sqlx = {version = "0.5", features = ["runtime-async-std-rustls", "migrate", "sqlite", "chrono"]}
 structopt = "0.3"
 
-fake = {version = "2.4", features = ["chrono"]}
-rand = "0.8"
-
 # for the following, see https://github.com/bitvecto-rs/bitvec/issues/105
 funty = "=1.1.0"
+
+[dev-dependencies]
+fake = {version = "2.4", features = ["chrono"]}
+rand = "0.8"
