@@ -2,10 +2,11 @@ create table if not exists podcasts (
     id integer primary key not null,
     title text not null,
     url text not null unique,
-    description text,
-    author text,
+    description text not null,
     enabled boolean not null default true,
-    last_checked datetime
+    last_checked datetime not null,
+    image_url text,
+    cache_key text
 );
 
 create table if not exists episodes (

@@ -14,6 +14,8 @@ chrono = "0.4"
 directories = "3.0"
 env_logger = "0.8"
 log = "0.4"
+minreq = { version = "2.0", features = ["https-rustls", "proxy"] }
+rss = "1.0"
 sqlx = {version = "0.5", features = ["runtime-async-std-rustls", "migrate", "sqlite", "chrono"]}
 structopt = "0.3"
 

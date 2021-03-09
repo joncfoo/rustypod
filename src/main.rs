@@ -2,9 +2,11 @@ use std::fs::create_dir_all;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
+use log::debug;
 use structopt::StructOpt;
 
 mod db;
+mod fetch;
 
 #[derive(StructOpt)]
 struct Args {
@@ -54,6 +56,8 @@ async fn main() -> Result<()> {
     let app = App {
         db: db::Database::new(db::Connection::File(dbpath)).await?,
     };
+
+    debug!("oh hai");
 
     Ok(())
 }

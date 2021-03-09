@@ -1,6 +1,5 @@
 use anyhow::Result;
 use chrono::NaiveDateTime;
-use log::debug;
 use sqlx::migrate::Migrator;
 use sqlx::{query, query_as, Pool, Sqlite, SqlitePool};
 
@@ -17,13 +16,14 @@ pub struct Database {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Podcast {
-    id: i64,
-    title: String,
-    url: String,
-    description: Option<String>,
-    author: Option<String>,
-    enabled: bool,
-    last_checked: Option<NaiveDateTime>,
+    pub id: i64,
+    pub title: String,
+    pub url: String,
+    pub description: String,
+    pub enabled: bool,
+    pub last_checked: NaiveDateTime,
+    pub image_url: Option<String>,
+    pub cache_key: Option<String>,
 }
 
 impl Database {
@@ -32,7 +32,6 @@ impl Database {
             Connection::Memory => String::from("sqlite::memory:"),
             Connection::File(path) => format!("file://{}?mode=rwc", path).to_string(),
         };
-        debug!("database = {}", dbfile);
 
         let pool = SqlitePool::connect(&dbfile).await?;
         MIGRATOR.run(&pool).await?;
@@ -46,18 +45,27 @@ impl Database {
             Podcast,
             r#"
             insert into podcasts
-                (title, url, description, author, enabled, last_checked)
+                (title, url, description, enabled, last_checked, image_url, cache_key)
             values
-                (?, ?, ?, ?, ?, ?);
+                (?, ?, ?, ?, ?, ?, ?)
+            on conflict (url)
+            do update set
+                title = excluded.title,
+                description = excluded.description,
+                enabled = excluded.enabled,
+                last_checked = excluded.last_checked,
+                image_url = excluded.image_url,
+                cache_key = excluded.cache_key;
 
             select * from podcasts where id = last_insert_rowid();
             "#,
             p.title,
             p.url,
             p.description,
-            p.author,
             p.enabled,
-            p.last_checked
+            p.last_checked,
+            p.image_url,
+            p.cache_key,
         )
         .fetch_one(&mut tx)
         .await?;
@@ -76,9 +84,10 @@ impl Database {
                 title = ?,
                 url = ?,
                 description = ?,
-                author = ?,
                 enabled = ?,
-                last_checked = ?
+                last_checked = ?,
+                image_url = ?,
+                cache_key = ?
             where
                 id = ?;
 
@@ -87,9 +96,10 @@ impl Database {
             p.title,
             p.url,
             p.description,
-            p.author,
             p.enabled,
             p.last_checked,
+            p.image_url,
+            p.cache_key,
             p.id,
             p.id,
         )
@@ -129,9 +139,10 @@ mod tests {
             title: Faker.fake(),
             url: Faker.fake(),
             description: Faker.fake(),
-            author: Faker.fake(),
             enabled: Faker.fake(),
             last_checked: Faker.fake(),
+            image_url: Faker.fake(),
+            cache_key: Faker.fake(),
         }
     }
 
@@ -145,9 +156,14 @@ mod tests {
         assert_eq!(podcast.title, p.title);
         assert_eq!(podcast.url, p.url);
         assert_eq!(podcast.description, p.description);
-        assert_eq!(podcast.author, p.author);
         assert_eq!(podcast.enabled, p.enabled);
         assert_eq!(podcast.last_checked, p.last_checked);
+        assert_eq!(podcast.image_url, p.image_url);
+        assert_eq!(podcast.cache_key, p.cache_key);
+
+        // inserting twice is ok
+        let same_podcast = d.create_podcast(&podcast).await?;
+        assert_eq!(&same_podcast, &podcast);
 
         Ok(())
     }
@@ -166,9 +182,10 @@ mod tests {
         assert_eq!(podcast.title, p.title);
         assert_eq!(podcast.url, p.url);
         assert_eq!(podcast.description, p.description);
-        assert_eq!(podcast.author, p.author);
         assert_eq!(podcast.enabled, p.enabled);
         assert_eq!(podcast.last_checked, p.last_checked);
+        assert_eq!(podcast.image_url, p.image_url);
+        assert_eq!(podcast.cache_key, p.cache_key);
 
         Ok(())
     }
